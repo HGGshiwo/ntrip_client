@@ -7,18 +7,18 @@
   <arg name="namespace"              default = "/" />
   <arg name="node_name"              default = "ntrip_client" />
   <arg name="debug"                  default = "false" />
-  <arg name="host"                   default = "20.185.11.35" />
-  <arg name="port"                   default = "2101" />
-  <arg name="mountpoint"             default = "VTC1_RTCM3" />
+  <arg name="host"                   default = "120.253.239.161" />
+  <arg name="port"                   default = "8002" />
+  <arg name="mountpoint"             default = "RTCM33_GRCEJ" />
   <arg name="authenticate"           default = "true" />
-  <arg name="username"               default = "user" />
-  <arg name="password"               default = "pass" />
+  <arg name="username"               default = "cwpm11417" />
+  <arg name="password"               default = "cfuejdyk" />
   <arg name="ntrip_version"          default = "" />
   <arg name="ssl"                    default = "false" />
   <arg name="cert"                   default = "" />
   <arg name="key"                    default = "" />
   <arg name="ca_cert"                default = "" />
-  <arg name="rtcm_message_package"   default = "rtcm_msgs" />
+  <arg name="rtcm_message_package"   default = "mavros_msgs" />
 
   <!-- Set the log level to debug -->
   <env name="NTRIP_CLIENT_DEBUG" value="$(arg debug)" />
@@ -69,7 +69,8 @@
 
     <!-- How many seconds is acceptable in between receiving RTCM. If RTCM is not received for this duration, the node will attempt to reconnect -->
     <param name="rtcm_timeout_seconds" value="4" />
-
+    <remap from="/fix" to="/mavros/global_position/global" />
+    <remap from="/rtcm" to="/mavros/gps_rtk/send_rtcm"/>
     <!-- Uncomment the following section and replace "/gx5/nmea/sentence" with the topic you are sending NMEA on if it is not the one we requested -->
     <!--<remap from="/ntrip_client/nmea" to="/gx5/nmea/sentence" />-->
   </node>

@@ -24,7 +24,7 @@ class NTRIPRos(NTRIPRosBase):
   def __init__(self):
     # Init the node
     super().__init__('ntrip_client')
-
+    rospy.set_param('~send_rtcm', True)
     # Read some mandatory config
     host = rospy.get_param('~host', '127.0.0.1')
     port = rospy.get_param('~port', '2101')

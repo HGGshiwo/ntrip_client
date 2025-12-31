@@ -158,7 +158,7 @@ class NTRIPClient(NTRIPBase):
 
   def send_nmea(self, sentence):
     if not self._connected:
-      self._logwarn('NMEA sent before client was connected, discarding NMEA')
+      # self._logwarn('NMEA sent before client was connected, discarding NMEA')
       return
 
     # Not sure if this is the right thing to do, but python will escape the return characters at the end of the string, so do this manually

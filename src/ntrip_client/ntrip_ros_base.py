@@ -13,6 +13,7 @@ from sensor_msgs.msg import NavSatStatus
 
 from ntrip_client.ntrip_base import NTRIPBase
 from ntrip_client.nmea_parser import NMEAParser, NMEA_DEFAULT_MAX_LENGTH, NMEA_DEFAULT_MIN_LENGTH
+from std_msgs.msg import Bool, String
 
 # Try to import a couple different types of RTCM messages
 _MAVROS_MSGS_NAME = "mavros_msgs"
@@ -28,6 +29,7 @@ if importlib.util.find_spec(_RTCM_MSGS_NAME) is not None:
 
 class NTRIPRosBase:
   def __init__(self, name):
+    self.state_pub = rospy.Publisher("/mavproxy/ws", String, queue_size=100)
     # Read a debug flag from the environment that should have been set by the launch file
     try:
       self._debug = json.loads(os.environ["NTRIP_CLIENT_DEBUG"].lower())
@@ -81,28 +83,50 @@ class NTRIPRosBase:
   def run(self):
     # Setup a shutdown hook
     rospy.on_shutdown(self.stop)
-
-    # Connect the client
-    if not self._client.connect():
-      rospy.logerr('Unable to connect to NTRIP server')
-      return 1
-
-    # Setup our subscriber
     self._nmea_sub = rospy.Subscriber('nmea', Sentence, self.subscribe_nmea, queue_size=10)
     self._fix_sub = rospy.Subscriber('fix', NavSatFix, self.subscribe_fix, queue_size=10)
+    
+    connected = False
+    rate = rospy.Rate(10)
+    rate2 = rospy.Rate(0.1)
+    while not rospy.is_shutdown():
+      rate.sleep()
+      if not rospy.get_param("~send_rtcm", False):
+        self.state_pub.publish(json.dumps({"type": "state", "ntrip_state": "Not start"}))
+        continue
+      else:
+        self.state_pub.publish(json.dumps({"type": "state", "ntrip_state": "OK"}))
+        
+      # Connect the client
+      if not connected:
+        connected = self._client.connect()
+        if not connected:
+          rospy.logerr('Unable to connect to NTRIP server')
+          rate2.sleep()
+          continue
+          
+      if connected:
+        try:
+          self.publish_rtcm()
+        except Exception as e:
+          rospy.logerr(e)
+          connected = False
+          
+    # Setup our subscriber
+    
 
     # Start the timer that will check for RTCM data
-    self._rtcm_timer = rospy.Timer(rospy.Duration(0.1), self.publish_rtcm)
+    # self._rtcm_timer = rospy.Timer(rospy.Duration(0.1), self.publish_rtcm)
 
     # Spin until we are shutdown
-    rospy.spin()
-    return 0
+    # rospy.spin()
+    # return 0
 
   def stop(self):
     rospy.loginfo('Stopping RTCM publisher')
-    if self._rtcm_timer:
-      self._rtcm_timer.shutdown()
-      self._rtcm_timer.join()
+    # if self._rtcm_timer:
+    #   self._rtcm_timer.shutdown()
+    #   self._rtcm_timer.join()
     rospy.loginfo('Disconnecting NTRIP client')
     self._client.shutdown()
 
@@ -153,7 +177,7 @@ class NTRIPRosBase:
     self._client.send_nmea(nmea_sentence)
 
 
-  def publish_rtcm(self, event):
+  def publish_rtcm(self):
     for raw_rtcm in self._client.recv_rtcm():
       self._rtcm_pub.publish(self._create_rtcm_message(raw_rtcm))
 
